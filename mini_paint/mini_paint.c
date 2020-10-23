@@ -1,162 +1,153 @@
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   mini_paint.c                                       :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: abaur <abaur@student.42.fr>                +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2020/10/23 20:52:00 by abaur             #+#    #+#             */
+/*   Updated: 2020/10/23 22:20:52 by abaur            ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
-typedef struct	s_zone
-{
-	int		width;
-	int		height;
-	char	background;
-}				t_zone;
+#define DEBUG 1
 
-typedef struct	s_shape
+FILE*	g_filestream;
+char*	g_rendertexture;
+int	g_width, g_height;
+#define pixel(x, y)	g_rendertexture[(y * g_width) + x]
+
+typedef struct s_op	t_op;
+struct s_op
 {
 	char	type;
-	float	x;
-	float	y;
-	float	radius;
 	char	color;
-}				t_shape;
+	float	x, y;
+	float	radius;
+};
 
-int
-	ft_strlen(char const *str)
+static void renderflush(int fd)
 {
-	int	i;
-
-	i = 0;
-	while (str[i])
-		i++;
-	return (i);
-}
-
-char
-	*get_zone(FILE *file, t_zone *zone)
-{
-	int		i;
-	char	*tmp;
-
-	if (fscanf(file, "%d %d %c\n", &zone->width, &zone->height, &zone->background) != 3)
-		return (NULL);
-	if (zone->width <= 0 || zone->width > 300 || zone->height <= 0 || zone->height > 300)
-		return (NULL);
-	if (!(tmp = (char*)malloc(sizeof(*tmp) * (zone->width * zone->height))))
-		return (NULL);
-	i = 0;
-	while (i < zone->width * zone->height)
-		tmp[i++] = zone->background;
-	return (tmp);
-}
-
-int
-	in_circle(float x, float y, t_shape *shape)
-{
-	float	distance;
-
-	distance = sqrtf(powf(x - shape->x, 2.) + powf(y - shape->y, 2.));
-	if (distance <= shape->radius)
+	for (int y=0; y<g_height; y++)
 	{
-		if ((shape->radius - distance) < 1.00000000)
-			return (2);
+		write(fd, &pixel(0, y), g_width);
+		write(fd, "\n", 1);
+	}
+}
+
+static short get_header()
+{
+	char background;
+	char lineterm;
+	int  status;
+
+	status = fscanf(g_filestream, "%i %i %c%c", &g_width, &g_height, &background, &lineterm);
+	#ifdef DEBUG
+	dprintf(STDERR_FILENO, "[%i]HEADER: [%i, %i] %c 0x%02x\n", status, g_width, g_height, background, lineterm);
+	#endif
+	if (   (status < 3)
+		|| (status == 4 && lineterm != '\n')
+		|| (background == ' ' || background == '\n' || background == EOF)
+		|| (g_width  <= 0 || 300 < g_width )
+		|| (g_height <= 0 || 300 < g_height)
+		)
+	{
+		return (0);
+	}
+	else
+	{
+		g_rendertexture = malloc(g_width*g_height);
+		if (!g_rendertexture)
+			return (0);
+		memset(g_rendertexture, background, g_width*g_height);
 		return (1);
 	}
-	return (0);
 }
 
-void
-	draw_shape(t_zone *zone, char *drawing, t_shape *shape)
+static void draw_op(t_op* op)
 {
-	int	y;
-	int	x;
-	int	is_it;
-
-	y = 0;
-	while (y < zone->height)
+	for (int x=0; x<g_width;  x++)
+	for (int y=0; y<g_height; y++)
 	{
-		x = 0;
-		while (x < zone->width)
-		{
-			is_it = in_circle((float)x, (float)y, shape);
-			if ((shape->type == 'c' && is_it == 2)
-				|| (shape->type == 'C' && is_it))
-				drawing[(y * zone->width) + x] = shape->color;
-			x++;
-		}
-		y++;
+		float distance = sqrtf(powf(x - op->x, 2) + powf(y - op->y, 2));
+		if (distance <= (op->radius-1) && op->type == 'c')
+			continue;
+		if (distance >  (op->radius))
+			continue;
+		pixel(x, y) = op->color;
 	}
 }
 
-int
-	draw_shapes(FILE *file, t_zone *zone, char *drawing)
+static short get_next_op()
 {
-	t_shape	tmp;
-	int		ret;
+	t_op op;
+	char lineterm;
+	int  status;
 
-	while ((ret = fscanf(file, "%c %f %f %f %c\n", &tmp.type, &tmp.x, &tmp.y, &tmp.radius, &tmp.color)) == 5)
+	status = fscanf(g_filestream, "%c %f %f %f %c%c", &op.type, &op.x, &op.y, &op.radius, &op.color, &lineterm);
+	#ifdef DEBUG
+	dprintf(STDERR_FILENO, "[%i]OP: %c (%f, %f) (%f) %c 0x%02x\n", status, op.type, op.x, op.y, op.radius, op.color, lineterm);
+	#endif
+	if (   (status < 5)
+		|| (status == 6 && lineterm != '\n')
+		|| (op.type != 'c' && op.type != 'C')
+		|| (op.color == ' ' || op.color == '\n' || op.color == EOF)
+		|| (op.radius <= 0)
+		)
 	{
-		if (tmp.radius <= 0.00000000 || (tmp.type != 'c' && tmp.type != 'C'))
-			return (0);
-		draw_shape(zone, drawing, &tmp);
+		return (-1);
 	}
-	if (ret != -1)
-		return (0);
-	return (1);
-}
-
-void
-	draw_drawing(t_zone *zone, char *drawing)
-{
-	int	i;
-
-	i = 0;
-	while (i < zone->height)
+	else
 	{
-		write(1, drawing + (i * zone->width), zone->width);
-		write(1, "\n", 1);
-		i++;
+		draw_op(&op);
+		return (status == 6);	
 	}
 }
 
-int
-	str_error(char const *str)
+static int clean_exit(int status)
 {
-	if (str)
-		write(1, str, ft_strlen(str));
-	return (1);
+	#ifdef DEBUG
+	if (status && g_rendertexture)
+		renderflush(STDERR_FILENO);
+	#endif
+
+	if (g_filestream)
+		fclose(g_filestream);
+	if (g_rendertexture)
+		free(g_rendertexture);
+
+	if (status)
+		write(STDOUT_FILENO, "Error: Operation file corrupted\n", 32);
+	return (status);
 }
 
-int
-	clear_all(FILE *file, char *drawing, char const *str)
+extern int main(int argc, char** argv)
 {
-	if (file)
-		fclose(file);
-	if (drawing)
-		free(drawing);
-	if (str)
-		str_error(str);
-	return (1);
-}
-
-int
-	main(int argc, char **argv)
-{
-	FILE	*file;
-	t_zone	zone;
-	char	*drawing;
-
-	zone.width = 0;
-	zone.height = 0;
-	zone.background = 0;
-	drawing = NULL;
 	if (argc != 2)
-		return (str_error("Error: argument\n"));
-	if (!(file = fopen(argv[1], "r")))
-		return (str_error("Error: Operation file corrupted\n"));
-	if (!(drawing = get_zone(file, &zone)))
-		return (clear_all(file, NULL, "Error: Operation file corrupted\n"));
-	if (!(draw_shapes(file, &zone, drawing)))
-		return (clear_all(file, drawing, "Error: Operation file corrupted\n"));
-	draw_drawing(&zone, drawing);
-	clear_all(file, drawing, NULL);
-	return (0);
+	{
+		write(STDOUT_FILENO, "Error: argument\n", 16);
+		return (EXIT_FAILURE);
+	}
+
+	g_filestream = fopen(argv[1], "r");
+	if (!g_filestream)
+		return(clean_exit(EXIT_FAILURE));
+	
+	if (!get_header())
+		return(clean_exit(EXIT_FAILURE));
+
+	short status;
+	while(0 < (status = get_next_op()))
+		continue;
+	if (status < 0)
+		return (clean_exit(EXIT_FAILURE));
+
+	renderflush(STDOUT_FILENO);
+	return(clean_exit(EXIT_SUCCESS));
 }
