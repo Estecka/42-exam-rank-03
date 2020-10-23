@@ -3,6 +3,5 @@
 *.a
 *.swp
 
-output
-coutput
+*.log
 example_
