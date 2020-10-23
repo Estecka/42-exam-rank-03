@@ -6,7 +6,7 @@
 /*   By: abaur <abaur@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/10/23 20:52:00 by abaur             #+#    #+#             */
-/*   Updated: 2020/10/23 22:20:52 by abaur            ###   ########.fr       */
+/*   Updated: 2020/10/23 22:42:30 by abaur            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -94,6 +94,8 @@ static short get_next_op()
 	#ifdef DEBUG
 	dprintf(STDERR_FILENO, "[%i]OP: %c (%f, %f) (%f) %c 0x%02x\n", status, op.type, op.x, op.y, op.radius, op.color, lineterm);
 	#endif
+	if (status < 0)
+		return (0);
 	if (   (status < 5)
 		|| (status == 6 && lineterm != '\n')
 		|| (op.type != 'c' && op.type != 'C')
