@@ -6,7 +6,7 @@
 /*   By: abaur <abaur@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/10/23 20:52:00 by abaur             #+#    #+#             */
-/*   Updated: 2020/10/23 22:42:30 by abaur            ###   ########.fr       */
+/*   Updated: 2021/01/20 19:48:35 by abaur            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,49 +18,71 @@
 
 #define DEBUG 1
 
-FILE*	g_filestream;
-char*	g_rendertexture;
-int	g_width, g_height;
+FILE* g_filestream;
+char* g_rendertexture;
+int   g_width, g_height;
 #define pixel(x, y)	g_rendertexture[(y * g_width) + x]
 
+/*
+** Reprents an operation. A single circle to be drawn.
+** @var char type	The type of operation to draw.
+** 	C is filled, c is outline only.
+** @var char color	The character to use to fill
+** @var float x, y	The coordinates of the circle's center.
+** @var float radius	The radius of the circle's outer border.
+*/
 typedef struct s_op	t_op;
 struct s_op
 {
-	char	type;
-	char	color;
-	float	x, y;
-	float	radius;
+	char  type;
+	char  color;
+	float x, y;
+	float radius;
 };
 
+/*
+** Prints the rendertexture to a file descriptor.
+** @param int fd	The file dscriptor.
+*/
 static void renderflush(int fd)
 {
 	for (int y=0; y<g_height; y++)
 	{
-		write(fd, &pixel(0, y), g_width);
+		write(fd, &pixel(0, y), g_width); // Get the adress of the first pixel in a row, and prints the entire row.
 		write(fd, "\n", 1);
 	}
 }
 
+/*
+** Parses a line of the as the header.
+** The result is written into the appropriates global variables.
+** @return bool
+** 	true  OK
+** 	false Error
+*/
 static short get_header()
 {
 	char background;
 	char lineterm;
 	int  status;
 
-	status = fscanf(g_filestream, "%i %i %c%c", &g_width, &g_height, &background, &lineterm);
+	status = fscanf(g_filestream, "%i %i %c%c",
+		&g_width, &g_height, &background, &lineterm);
 	#ifdef DEBUG
-	dprintf(STDERR_FILENO, "[%i]HEADER: [%i, %i] %c 0x%02x\n", status, g_width, g_height, background, lineterm);
+	dprintf(STDERR_FILENO, "[%i]HEADER: [%i, %i] %c 0x%02x\n",
+		status, g_width, g_height, background, lineterm);
 	#endif
-	if (   (status < 3)
-		|| (status == 4 && lineterm != '\n')
-		|| (background == ' ' || background == '\n' || background == EOF)
-		|| (g_width  <= 0 || 300 < g_width )
+	// Die if any occurs:
+	if (   (status < 3) // The header is incomplete.
+		|| (status == 4 && lineterm != '\n') // There is junk after the last property.
+		|| (background == ' ' || background == '\n' || background == EOF) // The last property is not actually specified.
+		|| (g_width  <= 0 || 300 < g_width ) // The texture's dimensions are invalid.
 		|| (g_height <= 0 || 300 < g_height)
 		)
 	{
 		return (0);
 	}
-	else
+	else // Allocate and initialize the rendertexture.
 	{
 		g_rendertexture = malloc(g_width*g_height);
 		if (!g_rendertexture)
@@ -70,37 +92,53 @@ static short get_header()
 	}
 }
 
+/*
+** Renders an operation to the texture.
+** @param t_op* op	The operation to render.
+*/
 static void draw_op(t_op* op)
 {
-	for (int x=0; x<g_width;  x++)
 	for (int y=0; y<g_height; y++)
+	for (int x=0; x<g_width;  x++)
 	{
 		float distance = sqrtf(powf(x - op->x, 2) + powf(y - op->y, 2));
+		// Skip pixels inside an empty circle
 		if (distance <= (op->radius-1) && op->type == 'c')
 			continue;
+		// Skip pixels outside any circle.
 		if (distance >  (op->radius))
 			continue;
 		pixel(x, y) = op->color;
 	}
 }
 
+/*
+** Parses an operation from the file, and renders it immediately.
+** @return int
+** 	 1	An operation was drawn.
+** 	 0	End of File was reached.
+** 	-1	Error
+*/
 static short get_next_op()
 {
 	t_op op;
 	char lineterm;
 	int  status;
 
-	status = fscanf(g_filestream, "%c %f %f %f %c%c", &op.type, &op.x, &op.y, &op.radius, &op.color, &lineterm);
+	status = fscanf(g_filestream, "%c %f %f %f %c%c",
+		&op.type, &op.x, &op.y, &op.radius, &op.color, &lineterm);
 	#ifdef DEBUG
-	dprintf(STDERR_FILENO, "[%i]OP: %c (%f, %f) (%f) %c 0x%02x\n", status, op.type, op.x, op.y, op.radius, op.color, lineterm);
+	dprintf(STDERR_FILENO, "[%i]OP: %c (%f, %f) (%f) %c 0x%02x\n",
+		status, op.type, op.x, op.y, op.radius, op.color, lineterm);
 	#endif
-	if (status < 0)
+	if (status < 0) // Check for End of File
 		return (0);
-	if (   (status < 5)
-		|| (status == 6 && lineterm != '\n')
-		|| (op.type != 'c' && op.type != 'C')
-		|| (op.color == ' ' || op.color == '\n' || op.color == EOF)
-		|| (op.radius <= 0)
+	// Die if any occurs: 
+	if (   (status < 5) // The op is incomplete
+		|| (status == 6 && lineterm != '\n') // There is junk after the last property.
+		|| (op.type != 'c' && op.type != 'C') // The type is unknown
+		|| (op.color == ' ' || op.color == '\n' || op.color == EOF) // The last property is not actually specified.
+		|| (op.radius <= 0) // The circle's radius is invalid.
 		)
 	{
 		return (-1);
@@ -108,10 +146,16 @@ static short get_next_op()
 	else
 	{
 		draw_op(&op);
-		return (status == 6);	
+		return (1);
 	}
 }
 
+/*
+** Frees all data and returns the given status.
+** This does not actually exit the program.
+** @param int status	The status to be returned.
+** @return int	Same value as `status`.
+*/
 static int clean_exit(int status)
 {
 	#ifdef DEBUG
@@ -145,9 +189,10 @@ extern int main(int argc, char** argv)
 		return(clean_exit(EXIT_FAILURE));
 
 	short status;
+	// Iterates over each operation line, parses and renders it immediately.
 	while(0 < (status = get_next_op()))
 		continue;
-	if (status < 0)
+	if (status < 0) // Triggers if an invalid operation is encountered.
 		return (clean_exit(EXIT_FAILURE));
 
 	renderflush(STDOUT_FILENO);
