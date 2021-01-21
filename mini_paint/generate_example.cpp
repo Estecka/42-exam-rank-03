@@ -32,6 +32,19 @@ float
     return (std::uniform_real_distribution<float>(min, max)(rng));
 }
 
+/*
+** Returns a string containing between 0 and 4 spaces.
+** (Selects a random space in a longer string, and returns a pointer to it.)
+*/
+const char* rand_space(std::mt19937 &rng)
+{
+	if (rand_int_range(0, 100, rng))
+		return "";
+	else
+		return &"    "[rand_int_range(0, 4, rng)];
+}
+#define rsp	rand_space(rng)
+
 int
 	main(void)
 {
@@ -77,13 +90,17 @@ int
 			sradius = rand_float_range(-.90, 400., rng);
 		}
 		if (!rand_int_range(0, 100, rng))
-			status &= 0 < fprintf(file, "\n");
+			status &= 0 < fprintf(file, "\n%s", rsp);
 		if (rand_int_range(0, 100, rng) >= 35)
-			status &= 0 < fprintf(file, (++i == nbr_shapes) ? "%c %f %f %f %c" : "%c %f %f %f %c\n", type, x, y, sradius, color);
+			status &= 0 < fprintf(file, (++i == nbr_shapes) ?
+					"%s%c %s%f %s%f %s%f %s%c%s" : "%s%c %s%f %s%f %s%f %s%c%s\n",
+					rsp, type, rsp, x, rsp, y, rsp, sradius, rsp, color, rsp);
 		else
-			status &= 0 < fprintf(file, (++i == nbr_shapes) ? "%c %d %d %d %c" : "%c %d %d %d %c\n", type, (int)x, (int)y, (int)sradius, color);
+			status &= 0 < fprintf(file, (++i == nbr_shapes) ?
+					"%s%c %s%d %s%d %s%d %s%c%s" : "%s%c %s%d %s%d %s%d %s%c%s\n",
+					rsp, type, rsp, (int)x, rsp, (int)y, rsp, (int)sradius, rsp, color, rsp);
 		if (!rand_int_range(0, 100, rng))
-			status &= 0 < fprintf(file, "\n");
+			status &= 0 < fprintf(file, "\n%s", rsp);
 		if (!status)
 			return (fclose(file) && printf("file: fprintf error.\n"));
 	}
