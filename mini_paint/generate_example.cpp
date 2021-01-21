@@ -41,6 +41,7 @@ int
 	int		type, color;
 	float	x, y, sradius;
 	int		size;
+	short	status = 1;
 
 	std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
 	if (!(file = fopen("example_", "w")))
@@ -55,8 +56,6 @@ int
 	i = 0;
 	while (i < nbr_shapes)
 	{
-		if (!rand_int_range(0, 100, rng))
-			fprintf(file, "\n");
 		type = rand_int_range(0, 10000, rng);
 		if (type == 10000 || type == 0)
 			type = 'a';
@@ -77,11 +76,15 @@ int
 			y = rand_float_range(-100., 400., rng);
 			sradius = rand_float_range(-.90, 400., rng);
 		}
+		if (!rand_int_range(0, 100, rng))
+			status &= 0 < fprintf(file, "\n");
 		if (rand_int_range(0, 100, rng) >= 35)
-			size = fprintf(file, (++i == nbr_shapes) ? "%c %f %f %f %c" : "%c %f %f %f %c\n", type, x, y, sradius, color);
+			status &= 0 < fprintf(file, (++i == nbr_shapes) ? "%c %f %f %f %c" : "%c %f %f %f %c\n", type, x, y, sradius, color);
 		else
-			size = fprintf(file, (++i == nbr_shapes) ? "%c %d %d %d %c" : "%c %d %d %d %c\n", type, (int)x, (int)y, (int)sradius, color);
-		if (size < 0)
+			status &= 0 < fprintf(file, (++i == nbr_shapes) ? "%c %d %d %d %c" : "%c %d %d %d %c\n", type, (int)x, (int)y, (int)sradius, color);
+		if (!rand_int_range(0, 100, rng))
+			status &= 0 < fprintf(file, "\n");
+		if (!status)
 			return (fclose(file) && printf("file: fprintf error.\n"));
 	}
 	fclose(file);
