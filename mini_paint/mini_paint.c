@@ -75,7 +75,7 @@ static short get_header()
 	// Die if any occurs:
 	if (   (status < 3) // The header is incomplete.
 		|| (status == 4 && lineterm != '\n') // There is junk after the last property.
-		|| (background == ' ' || background == '\n' || background == EOF) // The last property is not actually specified.
+		|| (background == ' ' || background == '\n' || background == (char)EOF) // The last property is not actually specified.
 		|| (g_width  <= 0 || 300 < g_width ) // The texture's dimensions are invalid.
 		|| (g_height <= 0 || 300 < g_height)
 		)
@@ -137,7 +137,7 @@ static short get_next_op()
 	if (   (status < 5) // The op is incomplete
 		|| (status == 6 && lineterm != '\n') // There is junk after the last property.
 		|| (op.type != 'c' && op.type != 'C') // The type is unknown
-		|| (op.color == ' ' || op.color == '\n' || op.color == EOF) // The last property is not actually specified.
+		|| (op.color == ' ' || op.color == '\n' || op.color == (char)EOF) // The last property is not actually specified.
 		|| (op.radius <= 0) // The circle's radius is invalid.
 		)
 	{
