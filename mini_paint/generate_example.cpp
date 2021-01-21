@@ -55,6 +55,8 @@ int
 	i = 0;
 	while (i < nbr_shapes)
 	{
+		if (!rand_int_range(0, 100, rng))
+			fprintf(file, "\n");
 		type = rand_int_range(0, 10000, rng);
 		if (type == 10000 || type == 0)
 			type = 'a';
