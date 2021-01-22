@@ -4,4 +4,10 @@
 *.swp
 
 *.log
-example_
+
+our_micro_paint*
+micro_paint*
+our_mini_paint*
+mini_paint*
+gen*
+example_*

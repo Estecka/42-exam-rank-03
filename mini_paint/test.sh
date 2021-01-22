@@ -28,7 +28,7 @@ do
 			printf "\e[1;31m: difference in output, coutput is our, output yours and the example is in example_ !\e[0m\n"
 			exit 2
 		fi
-		if ! (( counter % 50 ))
+		if [ $(( $counter % 50 )) = 0 ]
 		then
 			printf "\e[1;34m[$counter]\e[0m"
 		fi
@@ -39,8 +39,8 @@ do
 			printf "\e[1;32m$our_res\e[0m"
 		fi
 	fi
-	((max++))
-	((counter++))
+	max=$((max + 1))
+	counter=$((counter + 1))
 done
 rm -rf example_ *.out.log *.err.log
 printf "\n> done"
