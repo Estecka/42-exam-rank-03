@@ -6,7 +6,7 @@
 /*   By: abaur <abaur@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/10/23 20:52:00 by abaur             #+#    #+#             */
-/*   Updated: 2021/01/20 19:48:35 by abaur            ###   ########.fr       */
+/*   Updated: 2021/01/22 14:51:16 by abaur            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -63,18 +63,16 @@ static void renderflush(int fd)
 static short get_header()
 {
 	char background;
-	char lineterm;
 	int  status;
 
-	status = fscanf(g_filestream, "%i %i %c%c",
-		&g_width, &g_height, &background, &lineterm);
+	status = fscanf(g_filestream, "%i %i %c\n",
+		&g_width, &g_height, &background);
 	#ifdef DEBUG
-	dprintf(STDERR_FILENO, "[%i]HEADER: [%i, %i] %c 0x%02x\n",
-		status, g_width, g_height, background, lineterm);
+	dprintf(STDERR_FILENO, "[%i]HEADER: [%i, %i] %c\n",
+		status, g_width, g_height, background);
 	#endif
 	// Die if any occurs:
 	if (   (status < 3) // The header is incomplete.
-		|| (status == 4 && lineterm != '\n') // There is junk after the last property.
 		|| (background == ' ' || background == '\n' || background == (char)EOF) // The last property is not actually specified.
 		|| (g_width  <= 0 || 300 < g_width ) // The texture's dimensions are invalid.
 		|| (g_height <= 0 || 300 < g_height)
@@ -122,20 +120,18 @@ static void draw_op(t_op* op)
 static short get_next_op()
 {
 	t_op op;
-	char lineterm;
 	int  status;
 
-	status = fscanf(g_filestream, "%c %f %f %f %c%c",
-		&op.type, &op.x, &op.y, &op.radius, &op.color, &lineterm);
+	status = fscanf(g_filestream, "%c %f %f %f %c\n",
+		&op.type, &op.x, &op.y, &op.radius, &op.color);
 	#ifdef DEBUG
-	dprintf(STDERR_FILENO, "[%i]OP: %c (%f, %f) (%f) %c 0x%02x\n",
-		status, op.type, op.x, op.y, op.radius, op.color, lineterm);
+	dprintf(STDERR_FILENO, "[%i]OP: %c (%f, %f) (%f) %c\n",
+		status, op.type, op.x, op.y, op.radius, op.color);
 	#endif
 	if (status < 0) // Check for End of File
 		return (0);
 	// Die if any occurs: 
 	if (   (status < 5) // The op is incomplete
-		|| (status == 6 && lineterm != '\n') // There is junk after the last property.
 		|| (op.type != 'c' && op.type != 'C') // The type is unknown
 		|| (op.color == ' ' || op.color == '\n' || op.color == (char)EOF) // The last property is not actually specified.
 		|| (op.radius <= 0) // The circle's radius is invalid.
