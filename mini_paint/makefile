@@ -19,7 +19,7 @@ ${OURS}: ${OUR_SRCS}
 
 ${GEN}: ${GEN_SRCS}
 	g++ ${GEN_SRCS} -o ${GEN} \
-		${CFLAGS}
+		${CFLAGS} ${LIBFLAGS}
 
 all: ${YOURS} ${OURS} ${GEN}
 
