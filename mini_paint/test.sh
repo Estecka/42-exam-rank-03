@@ -1,7 +1,7 @@
 #!/bin/bash
 echo "> start"
 echo "$ compile"
-make re
+make all || { printf "\e[1;31m: Compilation error.\n" && exit 1; }
 echo "$ test"
 counter=1
 max=2
