@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   mini_paint.c                                       :+:      :+:    :+:   */
+/*   minicro_paint.c                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: abaur <abaur@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/10/23 20:52:00 by abaur             #+#    #+#             */
-/*   Updated: 2021/01/22 14:51:16 by abaur            ###   ########.fr       */
+/*   Updated: 2021/01/29 17:19:14 by abaur            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,6 +32,7 @@ int   g_width, g_height;
 ** @var float radius	The radius of the circle's outer border.
 */
 typedef struct s_op	t_op;
+#ifdef MINI
 struct s_op
 {
 	char  type;
@@ -39,6 +40,8 @@ struct s_op
 	float x, y;
 	float radius;
 };
+#elif defined MICRO
+#endif
 
 /*
 ** Prints the rendertexture to a file descriptor.
@@ -94,6 +97,7 @@ static short get_header()
 ** Renders an operation to the texture.
 ** @param t_op* op	The operation to render.
 */
+#ifdef MINI
 static void draw_op(t_op* op)
 {
 	for (int y=0; y<g_height; y++)
@@ -109,6 +113,8 @@ static void draw_op(t_op* op)
 		pixel(x, y) = op->color;
 	}
 }
+#elif defined MICRO
+#endif
 
 /*
 ** Parses an operation from the file, and renders it immediately.
@@ -117,6 +123,7 @@ static void draw_op(t_op* op)
 ** 	 0	End of File was reached.
 ** 	-1	Error
 */
+#ifdef MINI
 static short get_next_op()
 {
 	t_op op;
@@ -145,6 +152,8 @@ static short get_next_op()
 		return (1);
 	}
 }
+#elif defined MICRO
+#endif
 
 /*
 ** Frees all data and returns the given status.

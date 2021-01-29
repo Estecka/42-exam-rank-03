@@ -1,4 +1,4 @@
-YOUR_SRCS =	mini_paint.c
+YOUR_SRCS =	../minicro_paint.c
 OUR_SRCS  =	our_mini_paint.c
 GEN_SRCS  =	generate_example.cpp
 
@@ -11,7 +11,7 @@ LIBFLAGS = -lm
 
 yours: ${YOURS}
 ${YOURS}: ${YOUR_SRCS}
-	gcc ${YOUR_SRCS} -o ${YOURS} \
+	gcc ${YOUR_SRCS} -o ${YOURS} -D MINI\
 		${CFLAGS} ${LIBFLAGS}
 
 ours: ${YOURS}
