@@ -6,7 +6,7 @@
 /*   By: abaur <abaur@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/10/23 20:52:00 by abaur             #+#    #+#             */
-/*   Updated: 2021/01/29 17:19:14 by abaur            ###   ########.fr       */
+/*   Updated: 2021/01/29 17:53:01 by abaur            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,11 +24,12 @@ int   g_width, g_height;
 #define pixel(x, y)	g_rendertexture[(y * g_width) + x]
 
 /*
-** Reprents an operation. A single circle to be drawn.
+** An operation. A single circle/rectangle to be drawn.
 ** @var char type	The type of operation to draw.
-** 	C is filled, c is outline only.
-** @var char color	The character to use to fill
-** @var float x, y	The coordinates of the circle's center.
+** 	C/R is filled, c/r is outline only.
+** @var char color	The character to use as filler
+** @var float x, y	The coordinates of the circle's center/the rectangle's min corner.
+** @var float r, h	The dimensions of the rectangle.
 ** @var float radius	The radius of the circle's outer border.
 */
 typedef struct s_op	t_op;
@@ -41,6 +42,13 @@ struct s_op
 	float radius;
 };
 #elif defined MICRO
+struct s_op
+{
+	char  type;
+	char  color;
+	float x, y;
+	float w, h;
+};
 #endif
 
 /*
@@ -94,7 +102,7 @@ static short get_header()
 }
 
 /*
-** Renders an operation to the texture.
+** Renders an operation to the rendertexture.
 ** @param t_op* op	The operation to render.
 */
 #ifdef MINI
@@ -114,6 +122,23 @@ static void draw_op(t_op* op)
 	}
 }
 #elif defined MICRO
+static void draw_op(t_op* op)
+{
+	for (int y=0; y<g_height; y++)
+	for (int x=0; x<g_width;  x++)
+	{
+		// Skip pixels inside an empty circle
+		if (op->type == 'r'
+			&& (op->x + 1) <= x && x <= (op->x + op->w - 1)
+			&& (op->y + 1) <= y && y <= (op->y + op->h - 1) )
+			continue;
+		// Skip pixels outside any circle.
+		if (x < op->x || (op->x + op->w) < x
+		 || y < op->y || (op->y + op->h) < y)
+			continue;
+		pixel(x, y) = op->color;
+	}
+}
 #endif
 
 /*
@@ -153,6 +178,34 @@ static short get_next_op()
 	}
 }
 #elif defined MICRO
+static short get_next_op()
+{
+	t_op op;
+	int  status;
+
+	status = fscanf(g_filestream, "%c %f %f %f %f %c\n",
+		&op.type, &op.x, &op.y, &op.w, &op.h, &op.color);
+	#ifdef DEBUG
+	dprintf(STDERR_FILENO, "[%i]OP: %c (%f, %f) (%f, %f) %c\n",
+		status, op.type, op.x, op.y, op.w, op.h, op.color);
+	#endif
+	if (status < 0) // Check for End of File
+		return (0);
+	// Die if any occurs: 
+	if (   (status < 6) // The op is incomplete
+		|| (op.type != 'r' && op.type != 'R') // The type is unknown
+		|| (op.color == ' ' || op.color == '\n' || op.color == (char)EOF) // The last property is not actually specified.
+		|| (op.w <= 0 || op.h <= 0) // The rectangle's dimensions are invalid.
+		)
+	{
+		return (-1);
+	}
+	else
+	{
+		draw_op(&op);
+		return (1);
+	}
+}
 #endif
 
 /*
