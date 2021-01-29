@@ -1,9 +1,9 @@
-YOUR_SRCS =	mini_paint.c
-OUR_SRCS  =	our_mini_paint.c
+YOUR_SRCS =	micro_paint.c
+OUR_SRCS  =	our_micro_paint.c
 GEN_SRCS  =	generate_example.cpp
 
-OURS  =	our_mini_paint
-YOURS =	mini_paint
+OURS  =	our_micro_paint
+YOURS =	micro_paint
 GEN   =	gen
 
 CFLAGS = -Wall -Wextra -Werror
@@ -14,7 +14,7 @@ ${YOURS}: ${YOUR_SRCS}
 	gcc ${YOUR_SRCS} -o ${YOURS} \
 		${CFLAGS} ${LIBFLAGS}
 
-ours: ${YOURS}
+ours: ${OURS}
 ${OURS}: ${OUR_SRCS}
 	gcc ${OUR_SRCS} -o ${OURS} \
 		${CFLAGS} ${LIBFLAGS}
