@@ -65,8 +65,8 @@ static void renderflush(int fd)
 }
 
 /*
-** Parses a line of the as the header.
-** The result is written into the appropriates global variables.
+** Parses the header of the file.
+** The result is written into the appropriate global variables.
 ** @return bool
 ** 	true  OK
 ** 	false Error
@@ -84,7 +84,6 @@ static short get_header()
 	#endif
 	// Die if any occurs:
 	if (   (status < 3) // The header is incomplete.
-		|| (background == ' ' || background == '\n' || background == (char)EOF) // The last property is not actually specified.
 		|| (g_width  <= 0 || 300 < g_width ) // The texture's dimensions are invalid.
 		|| (g_height <= 0 || 300 < g_height)
 		)
@@ -127,12 +126,12 @@ static void draw_op(t_op* op)
 	for (int y=0; y<g_height; y++)
 	for (int x=0; x<g_width;  x++)
 	{
-		// Skip pixels inside an empty circle
+		// Skip pixels inside an empty rectangle.
 		if (op->type == 'r'
 			&& (op->x + 1) <= x && x <= (op->x + op->w - 1)
 			&& (op->y + 1) <= y && y <= (op->y + op->h - 1) )
 			continue;
-		// Skip pixels outside any circle.
+		// Skip pixels outside any rectangle.
 		if (x < op->x || (op->x + op->w) < x
 		 || y < op->y || (op->y + op->h) < y)
 			continue;
@@ -165,7 +164,6 @@ static short get_next_op()
 	// Die if any occurs: 
 	if (   (status < 5) // The op is incomplete
 		|| (op.type != 'c' && op.type != 'C') // The type is unknown
-		|| (op.color == ' ' || op.color == '\n' || op.color == (char)EOF) // The last property is not actually specified.
 		|| (op.radius <= 0) // The circle's radius is invalid.
 		)
 	{
@@ -194,7 +192,6 @@ static short get_next_op()
 	// Die if any occurs: 
 	if (   (status < 6) // The op is incomplete
 		|| (op.type != 'r' && op.type != 'R') // The type is unknown
-		|| (op.color == ' ' || op.color == '\n' || op.color == (char)EOF) // The last property is not actually specified.
 		|| (op.w <= 0 || op.h <= 0) // The rectangle's dimensions are invalid.
 		)
 	{
